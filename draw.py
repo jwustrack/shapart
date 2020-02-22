@@ -10,8 +10,8 @@ if __name__ == '__main__':
     parser.add_argument("img_out", type=argparse.FileType('wb'))
     args = parser.parse_args()
 
-    data = canvas.blank(args.width, args.height)
+    c = canvas.monochrome(args.width, args.height, (1, 1, 1))
     for l in open(sys.argv[3]):
         _, x, y, s, r, g, b = (float(_) for _ in l.split())
-        canvas.arc(data, args.width, args.height, x, y, s, r, g, b)
-    canvas.save(args.img_out, data, args.width, args.height)
+        c.arc(x, y, s, r, g, b)
+    c.to_png(args.img_out)
