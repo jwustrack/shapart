@@ -1,0 +1,4 @@
+numpy>=1.18
+Pillow>=7.0
+pycairo>=1.19
+pygame>=2.0
