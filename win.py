@@ -37,10 +37,10 @@ def draw(shapes_queue, c, block=True):
     pygame.display.update()
     while True:
         try:
-            x, y, s, r, g, b = shapes_queue.get(block=block)
+            shape = shapes_queue.get(block=block)
         except queue.Empty:
             return
-        c.arc(x, y, s, r, g, b)
+        shape.draw(c)
 
 def refresh(c):
     clock = pygame.time.Clock()
@@ -75,8 +75,8 @@ def evolver(shapes_queue, orig_pil, art_pil, scale):
 
 def instr_writer(f_queue, f_obj):
     while True:
-        x, y, s, r, g, b = shapes_queue.get(block=True)
-        f_obj.write(f'arc {x} {y} {s} {r} {g} {b}\n')
+        shape = shapes_queue.get(block=True)
+        f_obj.write(f'{shape}\n')
         f_obj.flush()
 
 if __name__ == '__main__':
@@ -106,9 +106,7 @@ if __name__ == '__main__':
     art = canvas.monochrome(orig_pil.width, orig_pil.height, (255, 255, 255))
     args.instructions.seek(0)
     for l in args.instructions:
-        x, y, s, r, g, b = (float(_) for _ in l.split()[1:])
-        art.arc(x, y, s, r, g, b)
-        shapes_queue.put((x, y, s, r, g, b))
+        shapes_queue.put(canvas.shape_from_str(l))
     draw(shapes_queue, c, False)
     pygame.display.update()
     print('Done')

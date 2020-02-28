@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import sys
 
 import canvas
@@ -12,7 +13,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     c = canvas.monochrome(args.width, args.height, (1, 1, 1))
-    for l in open(sys.argv[3]):
-        x, y, s, r, g, b = (float(_) for _ in l.split()[1:])
-        c.arc(x, y, s, r, g, b)
+    for l in args.instructions:
+        canvas.shape_from_str(l).draw(c)
     c.to_png(args.img_out)
