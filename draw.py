@@ -1,5 +1,6 @@
-import canvas
 import sys
+
+import canvas
 
 if __name__ == '__main__':
     import argparse

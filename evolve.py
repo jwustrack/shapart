@@ -1,8 +1,10 @@
-import numpy
 import sys
 import os.path
-import canvas
 from random import random
+
+import numpy
+
+import canvas
 
 def rand(m, M):
     return m + random()*(M-m)
@@ -11,12 +13,6 @@ def rand_draw_params():
     s = rand(.01, .40)
     x, y = rand(s/2, 1-s/2), rand(s/2, 1-s/2)
     r, g, b = random(), random(), random()
-    return x, y, s, r, g, b
-
-def rand_draw_params():
-    s = .1
-    x, y = rand(s/2, 1-s/2), rand(s/2, 1-s/2)
-    r, g, b = round(random()), round(random()), round(random())
     return x, y, s, r, g, b
 
 def mse(A, B):
@@ -34,21 +30,21 @@ def randStd(low, high):
     x = numpy.random.normal(mean, dev)
     return round(max(min(x, high), low))
 
-def randStdCrop(x, y, x_to, y_to, crop_w, crop_h):
-    rand_x = randStd(x, x_to - crop_w)
-    rand_y = randStd(y, y_to - crop_h)
+def randStdCrop(left, top, right, bottom, crop_w, crop_h):
+    rand_x = randStd(left, right - crop_w)
+    rand_y = randStd(top, bottom - crop_h)
     return rand_x, rand_y, rand_x+crop_w, rand_y+crop_h
 
-def evolveCrop(shapes_queue, origPIL, artPIL, steps, x, y, x_to, y_to):
-    orig = canvas.from_pil(origPIL.crop((x, y, x_to, y_to)))
-    art = canvas.from_pil(artPIL.crop((x, y, x_to, y_to)))
-    art = evolve(shapes_queue, orig, art, offset_x=x, offset_y=y, full_w=origPIL.width, full_h=origPIL.height, steps=steps)
-    artPIL.paste(art.to_pil(), (x, y))
+def evolveCrop(shapes_queue, orig_pil, art_pil, steps, left, top, right, bottom):
+    orig = canvas.from_pil(orig_pil.crop((left, top, right, bottom)))
+    art = canvas.from_pil(art_pil.crop((left, top, right, bottom)))
+    art = evolve(shapes_queue, orig, art, offset_x=left, offset_y=top, full_w=orig_pil.width, full_h=orig_pil.height, steps=steps)
+    art_pil.paste(art.to_pil(), (left, top))
 
-def evolveBox(shapes_queue, origPIL, artPIL, x, y, x_to, y_to):
+def evolveBox(shapes_queue, orig_pil, art_pil, left, top, right, bottom):
     for _ in range(1000):
-        crop = randStdCrop(x, y, x_to, y_to, 10, 10)
-        evolveCrop(shapes_queue, origPIL, artPIL, 10, *crop)
+        crop = randStdCrop(left, top, right, bottom, 10, 10)
+        evolveCrop(shapes_queue, orig_pil, art_pil, 10, *crop)
 
 def evolve(shapes_queue, orig, art, offset_x, offset_y, full_w, full_h, steps=1):
     loss = mse(orig.data, art.data)

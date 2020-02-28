@@ -1,6 +1,7 @@
+import math
+
 import numpy
 import cairo
-import math
 from PIL import Image
 import pygame
 
@@ -21,8 +22,8 @@ class Canvas(object):
         self.surface = surface
         buf = self.surface.get_data()
         self.data = numpy.ndarray(shape=(self.w, self.h, 4),
-                                 dtype=numpy.uint8,
-                                 buffer=buf)
+                                  dtype=numpy.uint8,
+                                  buffer=buf)
 
     def sub(self, offset, size):
         subx, suby = offset

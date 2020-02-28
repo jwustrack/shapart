@@ -1,18 +1,30 @@
 #!/usr/bin/env python
-import pygame
-import canvas
 import sys
-import evolve
-from PIL import Image
-from random import randint
-from math import ceil
-import numpy
 import queue
 import threading
+from random import randint
+from math import ceil
 
+import pygame
+from PIL import Image
+
+import evolve
+import canvas
+
+def points_to_rect(point1, point2):
+    '''
+    >>> points_to_rect((5, 2), (4, 3))
+    <rect(4, 2, 1, 1)>
+    >>> points_to_rect((10, 9), (3, 7))
+    <rect(3, 7, 7, 2)>
+    '''
+    x1, y1 = point1
+    x2, y2 = point2
+    left, top = min(x1, x2), min(y1, y2)
+    right, bottom = max(x1, x2), max(y1, y2)
+    return pygame.Rect(left, top, right-left, bottom-top)
 
 class Broadcaster(object):
-
     def __init__(self, queues):
         self.queues = queues
 
@@ -23,14 +35,12 @@ class Broadcaster(object):
 def draw(shapes_queue, c, block=True):
     screen.blit(c.to_pygame(), (0,0))
     pygame.display.update()
-    i = 0
-    x_min = None
     while True:
         try:
             x, y, s, r, g, b = shapes_queue.get(block=block)
         except queue.Empty:
             return
-        x, y, w, h = c.arc(x, y, s, r, g, b)
+        c.arc(x, y, s, r, g, b)
 
 def refresh(c):
     clock = pygame.time.Clock()
@@ -55,12 +65,12 @@ selections = []
 curr_selection = None
 old_selections = []
 
-def evolver(shapes_queue, origPIL, artPIL, scale):
+def evolver(shapes_queue, orig_pil, art_pil, scale):
     global curr_selection
     selections.append(curr_selection)
     evolver_rect = curr_selection
     curr_selection = None
-    evolve.evolveBox(shapes_queue, origPIL, artPIL, evolver_rect.left/args.scale, evolver_rect.top/args.scale, evolver_rect.right/args.scale, evolver_rect.bottom/args.scale)
+    evolve.evolveBox(shapes_queue, orig_pil, art_pil, evolver_rect.left/args.scale, evolver_rect.top/args.scale, evolver_rect.right/args.scale, evolver_rect.bottom/args.scale)
     old_selections.append(evolver_rect)
 
 def instr_writer(f_queue, f_obj):
@@ -86,29 +96,24 @@ if __name__ == '__main__':
     pygame.display.init()
     screen = pygame.display.set_mode((args.width, args.height), 0, 32)
 
-
-    origPIL = Image.open(args.orig)
-    origWidth, origHeight = origPIL.width, origPIL.height
-    artPIL = Image.new(origPIL.mode, (origPIL.width, origPIL.height), (255, 255, 255))
-
-    origPIL = origPIL.resize((ceil(args.width/args.scale), ceil(args.height/args.scale)))
-    artPIL = artPIL.resize((ceil(args.width/args.scale), ceil(args.height/args.scale)))
+    orig_pil = Image.open(args.orig)
+    orig_pil = orig_pil.resize((ceil(args.width/args.scale), ceil(args.height/args.scale)))
 
     shapes_queue = queue.Queue()
     file_queue = queue.Queue()
 
-    print('Bootstrapping')
-    bsc = canvas.from_pil(artPIL)
+    print('Loading shapes...')
+    art = canvas.monochrome(orig_pil.width, orig_pil.height, (255, 255, 255))
     args.instructions.seek(0)
     for l in args.instructions:
         x, y, s, r, g, b = (float(_) for _ in l.split()[1:])
-        bsc.arc(x, y, s, r, g, b)
+        art.arc(x, y, s, r, g, b)
         shapes_queue.put((x, y, s, r, g, b))
     draw(shapes_queue, c, False)
     pygame.display.update()
-    print('Bootstrapping done')
+    print('Done')
 
-    artPIL = bsc.to_pil()
+    art_pil = art.to_pil()
 
     draw_thread = threading.Thread(target=lambda: draw(shapes_queue, c))
     draw_thread.start()
@@ -120,25 +125,27 @@ if __name__ == '__main__':
     inst_writer_thread.start()
 
     threads = []
-    down_x, down_y = None, None
+    selection_start = None
 
     while True:
       for event in pygame.event.get():
         if event.type == pygame.QUIT:
           raise SystemExit
-        if event.type == pygame.MOUSEBUTTONDOWN:
-          down_x, down_y = pygame.mouse.get_pos()
-        if event.type == pygame.MOUSEMOTION and down_x is not None:
-          x, y = pygame.mouse.get_pos()
+
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+          selection_start = pygame.mouse.get_pos()
+
+        elif event.type == pygame.MOUSEMOTION and selection_start is not None:
           if curr_selection is not None:
               old_selections.append(curr_selection)
-          curr_selection = pygame.Rect((down_x, down_y), (x-down_x, y-down_y))
-        if event.type == pygame.MOUSEBUTTONUP:
-          x, y = pygame.mouse.get_pos()
-          curr_selection = pygame.Rect((down_x, down_y), (x-down_x, y-down_y))
+          curr_selection = points_to_rect(selection_start, pygame.mouse.get_pos())
 
-          evolve_thread = threading.Thread(target=lambda: evolver(Broadcaster([shapes_queue, file_queue]), origPIL, artPIL, args.scale))
+        elif event.type == pygame.MOUSEBUTTONUP:
+          curr_selection = points_to_rect(selection_start, pygame.mouse.get_pos())
+
+          evolve_thread = threading.Thread(target=lambda: evolver(Broadcaster([shapes_queue, file_queue]), orig_pil, art_pil, args.scale))
           evolve_thread.start()
           threads.append(evolve_thread)
-          down_x, down_y = None, None
+
+          selection_start = None
           curr_selection = None
