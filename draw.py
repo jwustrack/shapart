@@ -12,6 +12,6 @@ if __name__ == '__main__':
 
     c = canvas.monochrome(args.width, args.height, (1, 1, 1))
     for l in open(sys.argv[3]):
-        _, x, y, s, r, g, b = (float(_) for _ in l.split())
+        x, y, s, r, g, b = (float(_) for _ in l.split()[1:])
         c.arc(x, y, s, r, g, b)
     c.to_png(args.img_out)
