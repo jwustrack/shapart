@@ -45,7 +45,7 @@ def draw(shapes_queue, c, block=True):
 def refresh(c):
     clock = pygame.time.Clock()
     while True:
-        clock.tick_busy_loop(40)
+        clock.tick_busy_loop(1000)
         screen.blit(c.to_pygame(), (0,0))
         for s in old_selections:
             try:
@@ -91,7 +91,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    c = canvas.monochrome(args.width, args.height, (1, 1, 1))
+    bg_color = (0, 0, 0)
+
+    c = canvas.monochrome(args.width, args.height, bg_color)
 
     pygame.display.init()
     screen = pygame.display.set_mode((args.width, args.height), 0, 32)
@@ -103,10 +105,12 @@ if __name__ == '__main__':
     file_queue = queue.Queue()
 
     print('Loading shapes...')
-    art = canvas.monochrome(orig_pil.width, orig_pil.height, (255, 255, 255))
+    art = canvas.monochrome(orig_pil.width, orig_pil.height, bg_color)
     args.instructions.seek(0)
     for l in args.instructions:
-        shapes_queue.put(canvas.shape_from_str(l))
+        shape = canvas.shape_from_str(l)
+        shape.draw(art)
+        shapes_queue.put(shape)
     draw(shapes_queue, c, False)
     pygame.display.update()
     print('Done')
